@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const memories = [
   {
@@ -45,7 +46,7 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-camera.position.set(0, 3.6, 21);
+camera.position.set(0, 3.8, 22);
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -60,16 +61,16 @@ container.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
-controls.target.set(0, 2.7, 0);
+controls.target.set(0, 2.6, 0);
 controls.minDistance = 5;
-controls.maxDistance = 38;
+controls.maxDistance = 40;
 
 const memorialGroup = new THREE.Group();
 scene.add(memorialGroup);
 
 scene.add(new THREE.AmbientLight(0xfff2df, 1.45));
 
-const keyLight = new THREE.DirectionalLight(0xffd9a3, 3);
+const keyLight = new THREE.DirectionalLight(0xffd9a3, 3.2);
 keyLight.position.set(-6, 9, 8);
 scene.add(keyLight);
 
@@ -105,14 +106,16 @@ const wall = new THREE.Mesh(
 wall.position.set(0, 8, -8);
 scene.add(wall);
 
+const loader = new GLTFLoader();
+
 const letterFiles = [
-  { key: "M1", label: "M", x: -9.6 },
-  { key: "E", label: "E", x: -6.4 },
-  { key: "M2", label: "M", x: -3.2 },
-  { key: "O", label: "O", x: 0 },
-  { key: "R", label: "R", x: 3.2 },
-  { key: "I", label: "I", x: 6.4 },
-  { key: "A", label: "A", x: 9.6 }
+  { key: "M1", label: "M", file: "models/M1%20memoria.glb", x: -9.6 },
+  { key: "E", label: "E", file: "models/E%20memoria.glb", x: -6.4 },
+  { key: "M2", label: "M", file: "models/M2%20memoria.glb", x: -3.2 },
+  { key: "O", label: "O", file: "models/O%20memoria.glb", x: 0 },
+  { key: "R", label: "R", file: "models/R%20memoria.glb", x: 3.2 },
+  { key: "I", label: "I", file: "models/I%20memoria.glb", x: 6.4 },
+  { key: "A", label: "A", file: "models/A%20memoria.glb", x: 9.6 }
 ];
 
 let loadedLetters = [];
@@ -172,7 +175,7 @@ function createFrame(memory, width, height) {
   const group = new THREE.Group();
 
   const backing = new THREE.Mesh(
-    new THREE.BoxGeometry(width * 1.12, height * 1.12, 0.06),
+    new THREE.BoxGeometry(width * 1.14, height * 1.14, 0.06),
     new THREE.MeshStandardMaterial({
       color: 0x2b1d13,
       roughness: 0.7,
@@ -194,6 +197,7 @@ function createFrame(memory, width, height) {
 
   backing.userData.isFrame = true;
   backing.userData.memory = memory;
+
   photo.userData.isFrame = true;
   photo.userData.memory = memory;
 
@@ -203,28 +207,54 @@ function createFrame(memory, width, height) {
   return group;
 }
 
-function createCellBlock(width, height, depth) {
-  return new THREE.Mesh(
-    new THREE.BoxGeometry(width, height, depth),
-    new THREE.MeshStandardMaterial({
-      color: 0x4a3524,
-      roughness: 0.52,
-      metalness: 0.18
-    })
-  );
+function normalizeGLB(model) {
+  const box = new THREE.Box3().setFromObject(model);
+  const center = new THREE.Vector3();
+  const size = new THREE.Vector3();
+
+  box.getCenter(center);
+  box.getSize(size);
+
+  model.position.sub(center);
+
+  const targetHeight = 4.9;
+  const scale = targetHeight / Math.max(size.y, size.z, 0.01);
+
+  model.scale.setScalar(scale);
+
+  return model;
 }
 
-function create3DLetter(data) {
-  const group = new THREE.Group();
-  group.name = data.key;
-  group.position.set(data.x, 2.7, 0);
+function styleGLB(model) {
+  model.traverse(child => {
+    if (child.isMesh) {
+      child.material = new THREE.MeshStandardMaterial({
+        color: 0x4a3524,
+        roughness: 0.52,
+        metalness: 0.2
+      });
 
-  const map = letterMaps[data.label];
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+}
+
+function createFramesForLetter(letterGroup, label) {
+  const map = letterMaps[label];
+
+  const framesGroup = new THREE.Group();
+  framesGroup.name = "frames";
+  letterGroup.add(framesGroup);
 
   const cell = 0.5;
   const frameW = 0.36;
   const frameH = 0.5;
-  const depth = 0.42;
+
+  const frontZ = 0.72;
+  const backZ = -0.72;
+  const sideX = 1.28;
+  const topY = 2.05;
 
   let memoryIndex = 0;
 
@@ -237,18 +267,14 @@ function create3DLetter(data) {
       const x = (col - 2) * cell;
       const y = (3 - row) * cell;
 
-      const block = createCellBlock(frameW * 1.2, frameH * 1.2, depth * 1.8);
-      block.position.set(x, y, 0);
-      group.add(block);
-
       const front = createFrame(memory, frameW, frameH);
-      front.position.set(x, y, depth + 0.02);
-      group.add(front);
+      front.position.set(x, y, frontZ);
+      framesGroup.add(front);
 
       const back = createFrame(memory, frameW, frameH);
-      back.position.set(x, y, -depth - 0.02);
+      back.position.set(x, y, backZ);
       back.rotation.y = Math.PI;
-      group.add(back);
+      framesGroup.add(back);
 
       memoryIndex++;
     });
@@ -263,14 +289,14 @@ function create3DLetter(data) {
     const memory = memories[(memoryIndex + index) % memories.length];
 
     const left = createFrame(memory, frameW * 0.82, frameH);
-    left.position.set(-2.48 * cell, y, 0);
+    left.position.set(-sideX, y, 0);
     left.rotation.y = -Math.PI / 2;
-    group.add(left);
+    framesGroup.add(left);
 
     const right = createFrame(memory, frameW * 0.82, frameH);
-    right.position.set(2.48 * cell, y, 0);
+    right.position.set(sideX, y, 0);
     right.rotation.y = Math.PI / 2;
-    group.add(right);
+    framesGroup.add(right);
   });
 
   for (let col = 0; col < 5; col++) {
@@ -282,27 +308,62 @@ function create3DLetter(data) {
     const memory = memories[(memoryIndex + activeRows.length + col) % memories.length];
 
     const top = createFrame(memory, frameW, frameH * 0.82);
-    top.position.set(x, 3.48 * cell, 0);
+    top.position.set(x, topY, 0);
     top.rotation.x = -Math.PI / 2;
-    group.add(top);
+    framesGroup.add(top);
   }
+}
 
-  group.scale.setScalar(1.35);
+function createLetter(data, glbModel) {
+  const letterGroup = new THREE.Group();
 
-  memorialGroup.add(group);
+  letterGroup.name = data.key;
+  letterGroup.position.set(data.x, 2.7, 0);
+
+  const base = normalizeGLB(glbModel);
+
+  styleGLB(base);
+
+  base.rotation.x = -Math.PI / 2;
+  base.rotation.z = 0;
+  base.rotation.y = 0;
+
+  base.position.z = 0;
+
+  letterGroup.add(base);
+
+  createFramesForLetter(letterGroup, data.label);
+
+  letterGroup.scale.setScalar(1.35);
+
+  memorialGroup.add(letterGroup);
 
   loadedLetters.push({
     key: data.key,
     label: data.label,
-    object: group
+    object: letterGroup
   });
 }
 
-function buildMemorial() {
-  letterFiles.forEach(data => create3DLetter(data));
+function loadLetters() {
+  letterFiles.forEach(data => {
+    loader.load(
+      data.file,
+
+      gltf => {
+        createLetter(data, gltf.scene);
+      },
+
+      undefined,
+
+      error => {
+        console.warn("No se pudo cargar:", data.file, error);
+      }
+    );
+  });
 }
 
-buildMemorial();
+loadLetters();
 
 const letterButtons = document.getElementById("letterButtons");
 
@@ -369,7 +430,7 @@ document.getElementById("returnWord").addEventListener("click", () => {
   });
 
   controls.target.set(0, 2.7, 0);
-  camera.position.set(0, 3.6, 21);
+  camera.position.set(0, 3.8, 22);
   controls.update();
 
   document.getElementById("selectedLetterTitle").textContent = "MEMORIA";
@@ -383,7 +444,7 @@ document.getElementById("fullWordButton").addEventListener("click", () => {
   });
 
   controls.target.set(0, 2.7, 0);
-  camera.position.set(0, 3.6, 21);
+  camera.position.set(0, 3.8, 22);
   controls.update();
 
   document.getElementById("selectedLetterTitle").textContent = "MEMORIA";
@@ -405,7 +466,7 @@ document.getElementById("resetView").addEventListener("click", () => {
   });
 
   controls.target.set(0, 2.7, 0);
-  camera.position.set(0, 3.6, 21);
+  camera.position.set(0, 3.8, 22);
   controls.update();
 
   document.getElementById("selectedLetterTitle").textContent = "MEMORIA";
@@ -425,7 +486,10 @@ renderer.domElement.addEventListener("click", event => {
 
   raycaster.setFromCamera(pointer, camera);
 
-  const intersects = raycaster.intersectObjects(memorialGroup.children, true);
+  const intersects = raycaster.intersectObjects(
+    memorialGroup.children,
+    true
+  );
 
   if (!intersects.length) return;
 
@@ -444,7 +508,9 @@ renderer.domElement.addEventListener("click", event => {
 
   const found = loadedLetters.find(item => item.object === parent);
 
-  if (found) selectLetter(found);
+  if (found) {
+    selectLetter(found);
+  }
 });
 
 function openModal(memory) {

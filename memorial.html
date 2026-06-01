@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memorial 3D | Proyecto MEMORIA</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="memorial-page">
+
+  <aside class="side-nav">
+    <div class="side-brand">Proyecto<br>MEMORIA</div>
+    <a href="index.html">Inicio</a>
+    <button id="fullWordButton">Palabra completa</button>
+    <a href="aportar.html">Aportar memoria</a>
+    <a href="proyecto.html">Sobre el proyecto</a>
+  </aside>
+
+  <main class="memorial-main">
+    <header class="viewer-toolbar">
+      <button id="zoomOut">−</button>
+      <button id="zoomIn">+</button>
+      <button id="resetView">Reset</button>
+      <span>Arrastra para girar · Rueda para acercar · Click en una letra o frame</span>
+    </header>
+
+    <div id="threeContainer" class="three-container"></div>
+
+    <section class="letter-panel">
+      <p class="eyebrow">Exploración 3D</p>
+      <h2 id="selectedLetterTitle">MEMORIA</h2>
+      <p id="selectedLetterText">
+        Selecciona una letra para verla por separado y explorar sus frames.
+      </p>
+
+      <div id="letterButtons" class="letter-buttons"></div>
+
+      <button id="isolateLetter">Ver letra seleccionada</button>
+      <button id="returnWord">Volver a palabra completa</button>
+    </section>
+  </main>
+
+  <section id="memoryModal" class="modal">
+    <div class="modal-content">
+      <button id="closeModal" class="close">×</button>
+      <div id="modalMedia"></div>
+      <h2 id="modalTitle"></h2>
+      <p id="modalMeta"></p>
+      <p id="modalMessage"></p>
+      <ul id="modalFiles"></ul>
+    </div>
+  </section>
+
+  <script type="module" src="memorial.js"></script>
+</body>
+</html>

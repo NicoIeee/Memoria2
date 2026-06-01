@@ -1,158 +1,33 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Proyecto MEMORIA</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
-  <section id="lobbyView" class="view active lobby-view">
-    <canvas id="lobbyCanvas"></canvas>
+<body class="lobby-page">
 
-    <div class="brand">Proyecto<br>MEMORIA</div>
+  <canvas id="lobbyCanvas"></canvas>
 
-    <nav class="lobby-links">
-      <button data-view="uploadView">¿Cómo subir una memoria?</button>
-      <button data-view="aboutView">¿Qué es Proyecto MEMORIA?</button>
-    </nav>
+  <div class="brand">Proyecto<br>MEMORIA</div>
 
-    <div class="lobby-content">
-      <h1>MEMORIA</h1>
-      <p>Un memorial digital colectivo</p>
+  <nav class="lobby-links">
+    <a href="aportar.html">¿Cómo subir una memoria?</a>
+    <a href="proyecto.html">¿Qué es Proyecto MEMORIA?</a>
+  </nav>
 
-      <div class="lobby-actions">
-        <button data-view="memorialView">Entrar al memorial</button>
-        <button data-view="uploadView">Aportar una memoria</button>
-      </div>
+  <main class="lobby-content">
+    <h1>MEMORIA</h1>
+    <p>Un memorial digital colectivo</p>
+
+    <div class="lobby-actions">
+      <a href="memorial.html">Entrar al memorial</a>
+      <a href="aportar.html">Aportar una memoria</a>
     </div>
-  </section>
+  </main>
 
-  <section id="memorialView" class="view memorial-view">
-    <aside class="side-nav">
-      <div class="side-brand">Proyecto<br>MEMORIA</div>
-
-      <button data-view="lobbyView">Inicio</button>
-      <button id="fullWordButton">Palabra completa</button>
-      <button data-view="uploadView">Aportar memoria</button>
-      <button data-view="aboutView">Sobre el proyecto</button>
-    </aside>
-
-    <main class="memorial-main">
-      <header class="viewer-toolbar">
-        <button id="zoomOut">−</button>
-        <button id="zoomIn">+</button>
-        <button id="resetView">Reset</button>
-        <span>Arrastra para girar · Rueda para acercar · Click en una letra o frame</span>
-      </header>
-
-      <div id="threeContainer" class="three-container"></div>
-
-      <section class="letter-panel">
-        <p class="eyebrow">Exploración 3D</p>
-        <h2 id="selectedLetterTitle">MEMORIA</h2>
-        <p id="selectedLetterText">
-          Selecciona una letra para verla por separado y explorar sus frames en frente, lados, atrás y arriba.
-        </p>
-
-        <div id="letterButtons" class="letter-buttons"></div>
-
-        <button id="isolateLetter">Ver letra seleccionada</button>
-        <button id="returnWord">Volver a palabra completa</button>
-      </section>
-    </main>
-  </section>
-
-  <section id="uploadView" class="view content-view">
-    <button class="back-button" data-view="lobbyView">← Volver al inicio</button>
-
-    <section class="content-card">
-      <div>
-        <p class="eyebrow">Participación</p>
-        <h2>¿Cómo subir una memoria?</h2>
-        <p>
-          Selecciona una persona detenida desaparecida desde la base del proyecto y sube fotografías,
-          videos, audios, documentos o escritos para complementar su ficha conmemorativa.
-        </p>
-      </div>
-
-      <form id="memoryForm" class="memory-form">
-        <label>
-          Persona detenida desaparecida
-          <select id="personSelect" required></select>
-        </label>
-
-        <label>
-          Tipo de aporte
-          <select id="contributionType" required>
-            <option value="Imagen">Imagen</option>
-            <option value="Video">Video</option>
-            <option value="Audio">Audio</option>
-            <option value="Escrito">Escrito</option>
-            <option value="Documento">Documento</option>
-            <option value="Otro archivo">Otro archivo</option>
-          </select>
-        </label>
-
-        <label>
-          Archivos
-          <input id="filesInput" type="file" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" />
-        </label>
-
-        <label>
-          Mensaje o testimonio
-          <textarea id="messageInput" placeholder="Escribe un recuerdo, contexto o testimonio..." required></textarea>
-        </label>
-
-        <label>
-          Relación con la persona
-          <select id="relationInput" required>
-            <option value="Familiar">Familiar</option>
-            <option value="Amistad">Amistad</option>
-            <option value="Investigador/a">Investigador/a</option>
-            <option value="Ciudadano/a">Ciudadano/a</option>
-            <option value="Otro">Otro</option>
-          </select>
-        </label>
-
-        <label class="checkbox-label">
-          <input id="consentInput" type="checkbox" required />
-          Confirmo que este aporte puede ser revisado antes de publicarse.
-        </label>
-
-        <button type="submit">Construir memoria</button>
-      </form>
-    </section>
-  </section>
-
-  <section id="aboutView" class="view content-view">
-    <button class="back-button" data-view="lobbyView">← Volver al inicio</button>
-
-    <section class="content-card about-card">
-      <p class="eyebrow">Proyecto MEMORIA</p>
-      <h2>Un memorial digital vivo</h2>
-      <p>
-        Proyecto MEMORIA busca complementar el archivo de personas detenidas desaparecidas durante la
-        dictadura en Chile mediante aportes ciudadanos, familiares y documentales. La información oficial
-        no se reemplaza: se amplía con memorias, imágenes, archivos y testimonios vinculados a cada persona.
-      </p>
-
-      <button data-view="memorialView">Entrar al memorial</button>
-    </section>
-  </section>
-
-  <section id="memoryModal" class="modal">
-    <div class="modal-content">
-      <button id="closeModal" class="close">×</button>
-      <div id="modalMedia"></div>
-      <h2 id="modalTitle"></h2>
-      <p id="modalMeta"></p>
-      <p id="modalMessage"></p>
-      <ul id="modalFiles"></ul>
-    </div>
-  </section>
-
-  <script type="module" src="script.js"></script>
+  <script src="lobby.js"></script>
 </body>
 </html>

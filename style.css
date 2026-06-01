@@ -4,46 +4,35 @@
   box-sizing:border-box;
 }
 
-html,
-body{
+html, body{
   width:100%;
   min-height:100%;
 }
 
 body{
+  font-family:Georgia, "Times New Roman", serif;
   background:#f5f1ea;
   color:#111;
-  font-family:Georgia, "Times New Roman", serif;
   overflow-x:hidden;
 }
 
-button,
-input,
-select,
-textarea{
-  font-family:inherit;
+a{
+  color:inherit;
+  text-decoration:none;
 }
 
 button{
+  font-family:inherit;
   border:none;
   cursor:pointer;
 }
 
-.view{
-  display:none;
-}
-
-.view.active{
-  display:block;
-}
-
 /* LOBBY */
 
-.lobby-view{
+.lobby-page{
   min-height:100vh;
   position:relative;
   overflow:hidden;
-  background:#f5f1ea;
 }
 
 #lobbyCanvas{
@@ -54,7 +43,7 @@ button{
   z-index:0;
 }
 
-.lobby-view::after{
+.lobby-page::after{
   content:"";
   position:absolute;
   inset:0;
@@ -85,11 +74,8 @@ button{
   justify-items:end;
 }
 
-.lobby-links button{
-  background:transparent;
-  color:#111;
+.lobby-links a{
   text-decoration:underline;
-  font-size:0.95rem;
 }
 
 .lobby-content{
@@ -122,19 +108,20 @@ button{
 .lobby-actions{
   margin-top:36px;
   display:flex;
-  justify-content:center;
   gap:14px;
   flex-wrap:wrap;
+  justify-content:center;
 }
 
-.lobby-actions button{
+.lobby-actions a,
+.main-link{
   padding:14px 24px;
   border-radius:999px;
   background:#17111f;
-  color:#fff;
+  color:white;
 }
 
-.lobby-actions button:nth-child(2){
+.lobby-actions a:nth-child(2){
   background:rgba(255,255,255,0.42);
   color:#111;
   border:1px solid rgba(17,17,17,0.18);
@@ -143,12 +130,12 @@ button{
 
 /* MEMORIAL */
 
-.memorial-view.active{
+.memorial-page{
+  min-height:100vh;
   display:grid;
   grid-template-columns:150px 1fr;
-  min-height:100vh;
   background:#15120f;
-  color:#fff;
+  color:white;
 }
 
 .side-nav{
@@ -169,15 +156,17 @@ button{
   margin-bottom:26px;
 }
 
+.side-nav a,
 .side-nav button{
   width:100%;
   padding:12px;
   border-radius:14px;
   background:transparent;
-  color:#fff;
+  color:white;
   text-align:left;
 }
 
+.side-nav a:hover,
 .side-nav button:hover{
   background:rgba(255,255,255,0.12);
 }
@@ -207,7 +196,7 @@ button{
   height:36px;
   border-radius:50%;
   background:transparent;
-  color:#fff;
+  color:white;
   border:1px solid rgba(255,255,255,0.32);
 }
 
@@ -271,7 +260,7 @@ button{
   height:38px;
   border-radius:50%;
   background:#17111f;
-  color:#fff;
+  color:white;
 }
 
 .letter-panel > button{
@@ -280,12 +269,12 @@ button{
   border-radius:999px;
   margin-top:8px;
   background:#17111f;
-  color:#fff;
+  color:white;
 }
 
-/* CONTENT VIEWS */
+/* CONTENT */
 
-.content-view{
+.content-page{
   min-height:100vh;
   padding:34px;
   background:
@@ -294,10 +283,11 @@ button{
 }
 
 .back-button{
+  display:inline-block;
   padding:12px 18px;
   border-radius:999px;
   background:#17111f;
-  color:#fff;
+  color:white;
   margin-bottom:28px;
 }
 
@@ -315,7 +305,7 @@ button{
   border:1px solid rgba(17,17,17,0.08);
 }
 
-.content-card h2{
+.content-card h1{
   font-size:clamp(2rem, 5vw, 4rem);
   line-height:0.95;
   font-weight:400;
@@ -325,19 +315,12 @@ button{
 .content-card p{
   line-height:1.6;
   opacity:0.76;
+  margin-bottom:18px;
 }
 
 .about-card{
   display:block;
   max-width:850px;
-}
-
-.about-card button{
-  margin-top:24px;
-  padding:14px 22px;
-  border-radius:999px;
-  background:#17111f;
-  color:#fff;
 }
 
 .memory-form{
@@ -358,7 +341,7 @@ textarea{
   padding:14px;
   border-radius:16px;
   border:1px solid rgba(17,17,17,0.16);
-  background:#fff;
+  background:white;
   color:#111;
 }
 
@@ -381,7 +364,7 @@ textarea{
   padding:14px 18px;
   border-radius:999px;
   background:#17111f;
-  color:#fff;
+  color:white;
 }
 
 /* MODAL */
@@ -420,7 +403,7 @@ textarea{
   height:36px;
   border-radius:50%;
   background:#17111f;
-  color:#fff;
+  color:white;
 }
 
 #modalMedia img,
@@ -459,7 +442,7 @@ textarea{
 }
 
 @media(max-width:900px){
-  .memorial-view.active{
+  .memorial-page{
     grid-template-columns:1fr;
   }
 
@@ -478,13 +461,5 @@ textarea{
 
   .content-card{
     grid-template-columns:1fr;
-  }
-
-  .lobby-links{
-    right:24px;
-  }
-
-  .brand{
-    left:24px;
   }
 }

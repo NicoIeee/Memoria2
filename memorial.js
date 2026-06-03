@@ -47,67 +47,56 @@ const CUPOS_POR_CARA = {
 /*
   Posiciones de las letras.
   Aquí queda forzada la palabra exacta: M E M O R I A
-
-  CORRECCIÓN:
-  - Se agrega order para asegurar el orden MEMORIA.
-  - Se rota cada modelo -90° en X para que quede de frente y no acostado.
 */
 const letterFiles = [
   {
-    order: 0,
     key: "M1",
     label: "M",
     file: "models/M1 memoria.glb",
     x: -10.8,
-    rotation: { x: -Math.PI / 2, y: 0, z: 0 }
+    rotation: { x: 0, y: 0, z: 0 }
   },
   {
-    order: 1,
     key: "E",
     label: "E",
     file: "models/E memoria.glb",
     x: -7.2,
-    rotation: { x: -Math.PI / 2, y: 0, z: 0 }
+    rotation: { x: 0, y: 0, z: 0 }
   },
   {
-    order: 2,
     key: "M2",
     label: "M",
     file: "models/M2 memoria.glb",
     x: -3.6,
-    rotation: { x: -Math.PI / 2, y: 0, z: 0 }
+    rotation: { x: 0, y: 0, z: 0 }
   },
   {
-    order: 3,
     key: "O",
     label: "O",
     file: "models/O memoria.glb",
     x: 0,
-    rotation: { x: -Math.PI / 2, y: 0, z: 0 }
+    rotation: { x: 0, y: 0, z: 0 }
   },
   {
-    order: 4,
     key: "R",
     label: "R",
     file: "models/R memoria.glb",
     x: 3.6,
-    rotation: { x: -Math.PI / 2, y: 0, z: 0 }
+    rotation: { x: 0, y: 0, z: 0 }
   },
   {
-    order: 5,
     key: "I",
     label: "I",
     file: "models/I memoria.glb",
     x: 7.2,
-    rotation: { x: -Math.PI / 2, y: 0, z: 0 }
+    rotation: { x: 0, y: 0, z: 0 }
   },
   {
-    order: 6,
     key: "A",
     label: "A",
     file: "models/A memoria.glb",
     x: 10.8,
-    rotation: { x: -Math.PI / 2, y: 0, z: 0 }
+    rotation: { x: 0, y: 0, z: 0 }
   }
 ];
 
@@ -280,8 +269,6 @@ const loader = new GLTFLoader();
 const textureLoader = new THREE.TextureLoader();
 textureLoader.crossOrigin = "anonymous";
 
-const loadedLetters = [];
-
 /* =========================================================
    TEXTURAS DE FRAME
    ========================================================= */
@@ -388,6 +375,10 @@ function createFrame(memory) {
     })
   );
 
+  /*
+    Doble cara visual para que al girar se siga viendo bien,
+    pero sin crear “otra palabra detrás” porque ya no usamos back slots.
+  */
   const frontPhoto = new THREE.Mesh(
     new THREE.PlaneGeometry(ANCHO_FRAME, ALTO_FRAME),
     new THREE.MeshStandardMaterial({
@@ -770,13 +761,6 @@ function createLetter(data, glbScene) {
   letterGroup.updateWorldMatrix(true, true);
   addFramesOn3DStructure(letterGroup, structure);
 
-  loadedLetters.push({
-    order: data.order,
-    group: letterGroup
-  });
-
-  arrangeWord();
-
   structure.visible = MOSTRAR_GUIA_LETRAS;
 
   fitMemorialView();
@@ -804,36 +788,11 @@ function createFallbackLetter(data) {
 
   addFramesOnFallbackVolume(letterGroup);
 
-  loadedLetters.push({
-    order: data.order,
-    group: letterGroup
-  });
-
-  arrangeWord();
-
   fitMemorialView();
 }
 
-function arrangeWord() {
-  const orderedLetters = [...loadedLetters].sort((a, b) => a.order - b.order);
-
-  orderedLetters.forEach((item, index) => {
-    const data = letterFiles.find(letter => letter.order === item.order);
-
-    if (!data) {
-      return;
-    }
-
-    item.group.position.x = data.x;
-    item.group.position.y = 0;
-    item.group.position.z = 0;
-  });
-}
-
 function loadLetters() {
-  const sortedLetters = [...letterFiles].sort((a, b) => a.order - b.order);
-
-  sortedLetters.forEach(data => {
+  letterFiles.forEach(data => {
     loader.load(
       encodeURI(data.file),
       gltf => {

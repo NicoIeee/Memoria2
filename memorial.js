@@ -2,11 +2,10 @@
 // REEMPLAZA COMPLETO TU ARCHIVO memorial.js POR ESTE
 // AJUSTE:
 // - LAS LETRAS SE MANTIENEN IGUAL
-// - SOLO SE CORRIGE EL FONDO
-// - MAS ANCHO EN LOS COSTADOS PARA QUE QUEPA "MEMORIA"
-// - MAS PROFUNDIDAD COMO EN LA IMAGEN PNG
-// - VUELVE EL SUELO
-// - LA CAMARA QUEDA CENTRADA Y MIRANDO HACIA EL INTERIOR
+// - EL FONDO AHORA ES MAS ANCHO Y PROFUNDO
+// - EL SUELO CUBRE TODA LA VISTA
+// - TODOS LOS FRAMES PROYECTAN SOMBRA AL SUELO
+// - LA CAMARA YA NO TIENE LIMITE LATERAL DE GIRO
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -31,18 +30,15 @@ const DISTANCIA_MINIMA_ENTRE_FRAMES = 0.34;
 const OFFSET_FRAME = 0.028;
 const MAX_FRAMES_POR_LETRA = 68;
 
-/*
-  LAS LETRAS QUEDAN IGUAL.
-  SOLO SE USA UNA SALA DE REFERENCIA MAS ANCHA,
-  CON MAS PROFUNDIDAD Y SUELO VISIBLE.
-*/
 const USAR_ESCENARIO_REFERENCIA = true;
 const BACKGROUND_FILE = "models/memoriafondo.glb";
 const MOSTRAR_FONDO_GLB = false;
 
-const POSICION_LETRAS_INICIAL = new THREE.Vector3(0, 1.45, -5.6);
-const POSICION_CAMARA_INICIAL = new THREE.Vector3(0, 5.0, 14.8);
-const OBJETIVO_CAMARA_INICIAL = new THREE.Vector3(0, 2.7, -5.6);
+const POSICION_LETRAS_INICIAL = new THREE.Vector3(0, 1.48, -7.6);
+const POSICION_CAMARA_INICIAL = new THREE.Vector3(0, 5.2, 18.2);
+const OBJETIVO_CAMARA_INICIAL = new THREE.Vector3(0, 2.75, -7.6);
+
+const ACTIVAR_SOMBRAS_SUAVES_FRAMES = true;
 
 const CUPOS_POR_CARA = {
   front: 34,
@@ -199,7 +195,7 @@ const memories = getMemories();
 const container = document.getElementById("threeContainer");
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x111111, 26, 90);
+scene.fog = new THREE.Fog(0x111111, 35, 115);
 
 const camera = new THREE.PerspectiveCamera(
   35,
@@ -229,15 +225,26 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.target.copy(OBJETIVO_CAMARA_INICIAL);
-controls.enablePan = false;
-controls.minDistance = 8;
-controls.maxDistance = 34;
-controls.minPolarAngle = Math.PI / 2.45;
-controls.maxPolarAngle = Math.PI / 1.95;
-controls.minAzimuthAngle = -0.28;
-controls.maxAzimuthAngle = 0.28;
-controls.rotateSpeed = 0.65;
+
+controls.enablePan = true;
+controls.screenSpacePanning = false;
+
+controls.minDistance = 5;
+controls.maxDistance = 55;
+
+/*
+  SIN LIMITE LATERAL:
+  ahora puedes girar por toda la habitacion.
+*/
+controls.minAzimuthAngle = -Infinity;
+controls.maxAzimuthAngle = Infinity;
+
+controls.minPolarAngle = 0.15;
+controls.maxPolarAngle = Math.PI - 0.15;
+
+controls.rotateSpeed = 0.72;
 controls.zoomSpeed = 0.85;
+controls.panSpeed = 0.6;
 
 const memorialGroup = new THREE.Group();
 memorialGroup.position.copy(POSICION_LETRAS_INICIAL);
@@ -248,29 +255,39 @@ scene.add(memorialGroup);
    ILUMINACION
    ========================================================= */
 
-scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+scene.add(new THREE.AmbientLight(0xffffff, 0.92));
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 2.15);
-keyLight.position.set(-10, 13, 11);
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.7);
+keyLight.position.set(-10, 14, 18);
 keyLight.castShadow = true;
-keyLight.shadow.mapSize.width = 2048;
-keyLight.shadow.mapSize.height = 2048;
+keyLight.shadow.mapSize.width = 4096;
+keyLight.shadow.mapSize.height = 4096;
+keyLight.shadow.camera.near = 0.5;
+keyLight.shadow.camera.far = 90;
+keyLight.shadow.camera.left = -42;
+keyLight.shadow.camera.right = 42;
+keyLight.shadow.camera.top = 32;
+keyLight.shadow.camera.bottom = -18;
+keyLight.shadow.bias = -0.00008;
 scene.add(keyLight);
 
-const frontLight = new THREE.PointLight(0xffffff, 1.7, 52);
-frontLight.position.set(0, 6.4, 10);
+const frontLight = new THREE.PointLight(0xffffff, 1.7, 56);
+frontLight.position.set(0, 6.4, 12);
+frontLight.castShadow = true;
+frontLight.shadow.mapSize.width = 1024;
+frontLight.shadow.mapSize.height = 1024;
 scene.add(frontLight);
 
-const centerFillLight = new THREE.PointLight(0xd9e0e7, 1.35, 48);
-centerFillLight.position.set(0, 5.0, -6.5);
+const centerFillLight = new THREE.PointLight(0xd9e0e7, 1.2, 55);
+centerFillLight.position.set(0, 5.0, -7.5);
 scene.add(centerFillLight);
 
-const backGlowLight = new THREE.PointLight(0xcfd6dd, 0.7, 26);
-backGlowLight.position.set(0, 5.8, -15.5);
+const backGlowLight = new THREE.PointLight(0xcfd6dd, 0.75, 38);
+backGlowLight.position.set(0, 5.8, -24);
 scene.add(backGlowLight);
 
-const floorBounceLight = new THREE.PointLight(0xbec5cc, 0.55, 22);
-floorBounceLight.position.set(0, 0.9, -4.6);
+const floorBounceLight = new THREE.PointLight(0xbec5cc, 0.42, 30);
+floorBounceLight.position.set(0, 0.9, -6.5);
 scene.add(floorBounceLight);
 
 /* =========================================================
@@ -284,8 +301,16 @@ function createStoneMaterial(color, roughness = 0.88, metalness = 0.04) {
   return new THREE.MeshStandardMaterial({
     color,
     roughness,
-    metalness
+    metalness,
+    side: THREE.DoubleSide
   });
+}
+
+function createPanelLine(width, height, depth, color = 0x505357) {
+  return new THREE.Mesh(
+    new THREE.BoxGeometry(width, height, depth),
+    createStoneMaterial(color, 0.96, 0.02)
+  );
 }
 
 function createReferenceRoom() {
@@ -293,116 +318,168 @@ function createReferenceRoom() {
   room.name = "reference-room";
 
   /*
-    AJUSTES PRINCIPALES DEL FONDO:
-    - mas ancho para que entren todas las letras
-    - mas profundo para que el muro trasero no quede pegado
-    - suelo visible y grande
+    FONDO MAS GRANDE:
+    - roomWidth mas ancho para que quepa toda la palabra MEMORIA
+    - roomDepth mas profundo para separar pared frontal/trasera
+    - floorDepth extra hacia la camara para cubrir toda la vista
   */
-  const roomWidth = 38;
-  const roomHeight = 11.2;
-  const roomDepth = 32;
-  const roomCenterZ = -6.5;
+  const roomWidth = 58;
+  const roomHeight = 12;
+  const roomDepth = 54;
+  const roomCenterZ = -10;
+  const floorDepth = 86;
 
   const floor = new THREE.Mesh(
-    new THREE.BoxGeometry(roomWidth, 0.46, roomDepth),
+    new THREE.BoxGeometry(roomWidth, 0.48, floorDepth),
     new THREE.MeshStandardMaterial({
-      color: 0xaeb2b6,
-      roughness: 0.18,
-      metalness: 0.05
+      color: 0xb4b8bc,
+      roughness: 0.16,
+      metalness: 0.06,
+      side: THREE.DoubleSide
     })
   );
-  floor.position.set(0, -0.23, roomCenterZ);
+  floor.position.set(0, -0.24, roomCenterZ + 6);
   floor.receiveShadow = true;
   room.add(floor);
 
   const floorReflect = new THREE.Mesh(
-    new THREE.PlaneGeometry(roomWidth - 2.4, roomDepth - 2.2),
+    new THREE.PlaneGeometry(roomWidth - 2.4, floorDepth - 2.4),
     new THREE.MeshStandardMaterial({
-      color: 0xc8ccd0,
-      roughness: 0.14,
+      color: 0xd2d6da,
+      roughness: 0.12,
       metalness: 0.04,
       transparent: true,
-      opacity: 0.28
+      opacity: 0.24,
+      depthWrite: false,
+      side: THREE.DoubleSide
     })
   );
   floorReflect.rotation.x = -Math.PI / 2;
-  floorReflect.position.set(0, 0.02, roomCenterZ);
+  floorReflect.position.set(0, 0.025, roomCenterZ + 6);
+  floorReflect.receiveShadow = true;
   room.add(floorReflect);
 
   const backWall = new THREE.Mesh(
     new THREE.BoxGeometry(roomWidth, roomHeight, 0.9),
-    createStoneMaterial(0x64676b, 0.9, 0.02)
+    createStoneMaterial(0x64676b, 0.92, 0.02)
   );
   backWall.position.set(0, roomHeight / 2, roomCenterZ - roomDepth / 2);
   backWall.receiveShadow = true;
   room.add(backWall);
 
   const leftWall = new THREE.Mesh(
-    new THREE.BoxGeometry(0.9, roomHeight, roomDepth),
+    new THREE.BoxGeometry(0.9, roomHeight, floorDepth),
     createStoneMaterial(0x6c7074, 0.92, 0.02)
   );
-  leftWall.position.set(-roomWidth / 2, roomHeight / 2, roomCenterZ);
+  leftWall.position.set(-roomWidth / 2, roomHeight / 2, roomCenterZ + 6);
   leftWall.receiveShadow = true;
   room.add(leftWall);
 
   const rightWall = new THREE.Mesh(
-    new THREE.BoxGeometry(0.9, roomHeight, roomDepth),
+    new THREE.BoxGeometry(0.9, roomHeight, floorDepth),
     createStoneMaterial(0x6c7074, 0.92, 0.02)
   );
-  rightWall.position.set(roomWidth / 2, roomHeight / 2, roomCenterZ);
+  rightWall.position.set(roomWidth / 2, roomHeight / 2, roomCenterZ + 6);
   rightWall.receiveShadow = true;
   room.add(rightWall);
 
   const ceiling = new THREE.Mesh(
-    new THREE.BoxGeometry(roomWidth, 0.8, roomDepth),
-    createStoneMaterial(0x72767a, 0.94, 0.02)
+    new THREE.BoxGeometry(roomWidth, 0.75, roomDepth + 12),
+    createStoneMaterial(0x73777b, 0.95, 0.02)
   );
-  ceiling.position.set(0, roomHeight + 0.4, roomCenterZ);
+  ceiling.position.set(0, roomHeight + 0.38, roomCenterZ - 1.5);
+  ceiling.receiveShadow = true;
   room.add(ceiling);
 
   /*
-    FRANJA FRONTAL SUPERIOR, COMO EN EL PNG
+    FRANJA SUPERIOR FRONTAL COMO EN EL PNG.
   */
   const frontLintel = new THREE.Mesh(
-    new THREE.BoxGeometry(roomWidth + 1.8, 1.85, 1.35),
-    createStoneMaterial(0x7c8084, 0.94, 0.02)
+    new THREE.BoxGeometry(roomWidth + 2, 1.95, 1.45),
+    createStoneMaterial(0x7e8387, 0.95, 0.02)
   );
-  frontLintel.position.set(0, roomHeight + 0.25, roomCenterZ + roomDepth / 2 - 0.5);
+  frontLintel.position.set(0, roomHeight + 0.32, roomCenterZ + roomDepth / 2 + 5.2);
+  frontLintel.receiveShadow = true;
   room.add(frontLintel);
 
   const frontTopSlab = new THREE.Mesh(
-    new THREE.BoxGeometry(roomWidth + 2.8, 1.2, 5.0),
-    createStoneMaterial(0x7a7f83, 0.95, 0.02)
+    new THREE.BoxGeometry(roomWidth + 3.2, 1.2, 7.5),
+    createStoneMaterial(0x7b8084, 0.95, 0.02)
   );
-  frontTopSlab.position.set(0, roomHeight + 1.35, roomCenterZ + roomDepth / 2 - 2.0);
+  frontTopSlab.position.set(0, roomHeight + 1.42, roomCenterZ + roomDepth / 2 + 2.7);
+  frontTopSlab.receiveShadow = true;
   room.add(frontTopSlab);
 
   /*
-    COSTILLAS / DIVISIONES LATERALES VERTICALES DEL FONDO
+    LINEAS DE PANELES EN MURO TRASERO.
   */
-  const ribOffset = roomWidth / 2 - 1.15;
+  const verticalBackLines = [-19.3, -9.65, 0, 9.65, 19.3];
+
+  verticalBackLines.forEach(x => {
+    const line = createPanelLine(0.08, roomHeight - 0.9, 0.08, 0x4f5357);
+    line.position.set(x, roomHeight / 2 + 0.05, roomCenterZ - roomDepth / 2 + 0.48);
+    room.add(line);
+  });
+
+  const horizontalBackLines = [3.9, 7.6];
+
+  horizontalBackLines.forEach(y => {
+    const line = createPanelLine(roomWidth - 1.4, 0.08, 0.08, 0x4f5357);
+    line.position.set(0, y, roomCenterZ - roomDepth / 2 + 0.5);
+    room.add(line);
+  });
+
+  /*
+    COSTILLAS LATERALES COMO EN LA IMAGEN PNG.
+  */
+  const ribOffset = roomWidth / 2 - 1.25;
   const ribPositions = [-ribOffset, -ribOffset + 0.8, ribOffset - 0.8, ribOffset];
 
   ribPositions.forEach(x => {
     const rib = new THREE.Mesh(
-      new THREE.BoxGeometry(0.22, roomHeight - 0.7, 0.32),
-      createStoneMaterial(0x595d61, 0.95, 0.02)
+      new THREE.BoxGeometry(0.22, roomHeight - 0.7, 0.34),
+      createStoneMaterial(0x55595d, 0.96, 0.02)
     );
-    rib.position.set(x, roomHeight / 2 + 0.18, roomCenterZ - roomDepth / 2 + 1.0);
+    rib.position.set(x, roomHeight / 2 + 0.18, roomCenterZ - roomDepth / 2 + 1.3);
+    rib.receiveShadow = true;
     room.add(rib);
   });
 
-  const topOpeningLight = new THREE.PointLight(0xe6edf3, 1.45, 46);
-  topOpeningLight.position.set(0, 8.9, roomCenterZ + 2.6);
+  /*
+    LINEAS LATERALES PARA DAR PROFUNDIDAD.
+  */
+  const sidePanelZ = [
+    roomCenterZ - 22,
+    roomCenterZ - 12,
+    roomCenterZ - 2,
+    roomCenterZ + 8,
+    roomCenterZ + 18
+  ];
+
+  sidePanelZ.forEach(z => {
+    const leftLine = createPanelLine(0.08, roomHeight - 1, 0.08, 0x55595d);
+    leftLine.position.set(-roomWidth / 2 + 0.5, roomHeight / 2, z);
+    leftLine.rotation.y = Math.PI / 2;
+    room.add(leftLine);
+
+    const rightLine = createPanelLine(0.08, roomHeight - 1, 0.08, 0x55595d);
+    rightLine.position.set(roomWidth / 2 - 0.5, roomHeight / 2, z);
+    rightLine.rotation.y = Math.PI / 2;
+    room.add(rightLine);
+  });
+
+  const topOpeningLight = new THREE.PointLight(0xe6edf3, 1.25, 52);
+  topOpeningLight.position.set(0, 9.0, roomCenterZ + 4);
   room.add(topOpeningLight);
 
-  const backLight = new THREE.PointLight(0xd4dbe2, 0.78, 30);
-  backLight.position.set(0, 6.0, roomCenterZ - roomDepth / 2 + 2.5);
+  const backLight = new THREE.PointLight(0xd4dbe2, 0.7, 34);
+  backLight.position.set(0, 6.0, roomCenterZ - roomDepth / 2 + 3.2);
   room.add(backLight);
 
   room.userData.roomWidth = roomWidth;
   room.userData.roomHeight = roomHeight;
   room.userData.roomDepth = roomDepth;
+  room.userData.floorDepth = floorDepth;
   room.userData.roomCenterZ = roomCenterZ;
 
   return room;
@@ -415,26 +492,23 @@ function posicionarMemorialDentroDeSalaReferencia() {
     return;
   }
 
-  const roomWidth = referenceRoom.userData.roomWidth;
   const roomDepth = referenceRoom.userData.roomDepth;
   const roomCenterZ = referenceRoom.userData.roomCenterZ;
 
-  /*
-    SE MANTIENEN LAS LETRAS, SOLO SE UBICAN MAS CENTRADAS
-    DENTRO DE UNA SALA MAS ANCHA Y PROFUNDA.
-  */
-  memorialGroup.position.set(0, 1.46, roomCenterZ + 1.1);
+  memorialGroup.position.set(0, 1.48, roomCenterZ + 3.2);
   memorialGroup.rotation.set(0, 0, 0);
 
-  camera.position.set(0, 4.9, roomCenterZ + roomDepth / 2 - 1.6);
-  controls.target.set(0, 2.55, roomCenterZ + 0.6);
+  camera.position.set(0, 5.2, roomCenterZ + roomDepth / 2 + 12);
+  controls.target.set(0, 2.65, roomCenterZ + 2.6);
 
-  controls.minDistance = 8;
-  controls.maxDistance = 28;
-  controls.minPolarAngle = Math.PI / 2.42;
-  controls.maxPolarAngle = Math.PI / 1.96;
-  controls.minAzimuthAngle = -0.24;
-  controls.maxAzimuthAngle = 0.24;
+  controls.minDistance = 5;
+  controls.maxDistance = 55;
+
+  controls.minAzimuthAngle = -Infinity;
+  controls.maxAzimuthAngle = Infinity;
+
+  controls.minPolarAngle = 0.15;
+  controls.maxPolarAngle = Math.PI - 0.15;
 
   controls.update();
 }
@@ -521,6 +595,51 @@ function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
   if (line.trim()) {
     ctx.fillText(line, x, currentY);
   }
+}
+
+/* =========================================================
+   SOMBRAS SUAVES BAJO FRAMES
+   ========================================================= */
+
+function createSoftShadowTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+
+  const ctx = canvas.getContext("2d");
+  const gradient = ctx.createRadialGradient(128, 128, 10, 128, 128, 120);
+
+  gradient.addColorStop(0, "rgba(0, 0, 0, 0.28)");
+  gradient.addColorStop(0.38, "rgba(0, 0, 0, 0.16)");
+  gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 256, 256);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+
+  return texture;
+}
+
+const softShadowTexture = createSoftShadowTexture();
+
+function createFrameFloorShadow() {
+  const shadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.55, 0.42),
+    new THREE.MeshBasicMaterial({
+      map: softShadowTexture,
+      transparent: true,
+      opacity: 0.34,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    })
+  );
+
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.renderOrder = 1;
+
+  return shadow;
 }
 
 /* =========================================================
@@ -636,8 +755,10 @@ function createFrame(memory) {
 
   backing.castShadow = true;
   backing.receiveShadow = true;
+
   frontPhoto.castShadow = true;
   frontPhoto.receiveShadow = true;
+
   backPhoto.castShadow = true;
   backPhoto.receiveShadow = true;
 
@@ -656,6 +777,13 @@ function createFrame(memory) {
   group.add(backing);
   group.add(frontPhoto);
   group.add(backPhoto);
+
+  group.traverse(child => {
+    if (child.isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
 
   return group;
 }
@@ -892,6 +1020,9 @@ function addFramesOn3DStructure(letterGroup, structureObject) {
   const framesGroup = new THREE.Group();
   framesGroup.name = "frames-" + letterGroup.name;
 
+  const shadowsGroup = new THREE.Group();
+  shadowsGroup.name = "frame-shadows-" + letterGroup.name;
+
   const totalFrames = MODO_DEMO_RELLENAR_PALABRA
     ? slots.length
     : Math.min(slots.length, memories.length);
@@ -917,8 +1048,24 @@ function addFramesOn3DStructure(letterGroup, structureObject) {
     frame.quaternion.copy(quaternion);
 
     framesGroup.add(frame);
+
+    if (ACTIVAR_SOMBRAS_SUAVES_FRAMES) {
+      const shadow = createFrameFloorShadow();
+
+      shadow.position.set(
+        position.x,
+        -memorialGroup.position.y + 0.035,
+        position.z
+      );
+
+      shadow.scale.setScalar(0.9 + (i % 5) * 0.07);
+      shadow.rotation.z = ((i % 7) - 3) * 0.08;
+
+      shadowsGroup.add(shadow);
+    }
   }
 
+  letterGroup.add(shadowsGroup);
   letterGroup.add(framesGroup);
 }
 
@@ -929,6 +1076,9 @@ function addFramesOn3DStructure(letterGroup, structureObject) {
 function addFramesOnFallbackVolume(letterGroup) {
   const framesGroup = new THREE.Group();
   framesGroup.name = "fallback-frames-" + letterGroup.name;
+
+  const shadowsGroup = new THREE.Group();
+  shadowsGroup.name = "fallback-frame-shadows-" + letterGroup.name;
 
   const slots = [];
   const cols = 4;
@@ -985,8 +1135,24 @@ function addFramesOnFallbackVolume(letterGroup) {
     frame.quaternion.copy(quaternion);
 
     framesGroup.add(frame);
+
+    if (ACTIVAR_SOMBRAS_SUAVES_FRAMES) {
+      const shadow = createFrameFloorShadow();
+
+      shadow.position.set(
+        slot.position.x,
+        -memorialGroup.position.y + 0.035,
+        slot.position.z
+      );
+
+      shadow.scale.setScalar(0.9 + (i % 5) * 0.07);
+      shadow.rotation.z = ((i % 7) - 3) * 0.08;
+
+      shadowsGroup.add(shadow);
+    }
   }
 
+  letterGroup.add(shadowsGroup);
   letterGroup.add(framesGroup);
 }
 

@@ -2,7 +2,10 @@
 // Reemplaza TODO tu archivo memorial.js por este código completo.
 // Solo aparecen frames reales guardados en localStorage.
 // La palabra MEMORIA se forma progresivamente conforme se agregan aportes.
-// Corrección: escenario limpio con planos interiores y sin vigas/bloques que se crucen al girar.
+// Corrección:
+// - Escenario limpio con planos interiores.
+// - Sin vigas/bloques que se crucen al girar.
+// - Cámara limitada para que no se pueda alejar tanto ni ver la sala como maqueta.
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -32,8 +35,11 @@ const COLOR_TECHO = 0x4b4f53;
 const ALTURA_MINIMA_CAMARA = 1.25;
 const ALTURA_MINIMA_TARGET = 1.35;
 
+const DISTANCIA_MINIMA_CAMARA = 10;
+const DISTANCIA_MAXIMA_CAMARA = 42;
+
 const POSICION_LETRAS_INICIAL = new THREE.Vector3(0, 1.48, -5.5);
-const POSICION_CAMARA_INICIAL = new THREE.Vector3(0, 6.4, 47);
+const POSICION_CAMARA_INICIAL = new THREE.Vector3(0, 5.8, 61);
 const OBJETIVO_CAMARA_INICIAL = new THREE.Vector3(0, 2.75, -5.5);
 
 const CUPOS_POR_CARA = {
@@ -188,13 +194,13 @@ controls.target.copy(OBJETIVO_CAMARA_INICIAL);
 controls.enablePan = false;
 controls.screenSpacePanning = false;
 
-controls.minDistance = 12;
-controls.maxDistance = 150;
+controls.minDistance = DISTANCIA_MINIMA_CAMARA;
+controls.maxDistance = DISTANCIA_MAXIMA_CAMARA;
 
 controls.minAzimuthAngle = -Infinity;
 controls.maxAzimuthAngle = Infinity;
 
-controls.minPolarAngle = 0.28;
+controls.minPolarAngle = 0.58;
 controls.maxPolarAngle = Math.PI / 2.18;
 
 controls.rotateSpeed = 0.72;
@@ -251,16 +257,6 @@ function createReferenceRoom() {
   const room = new THREE.Group();
   room.name = "reference-room";
 
-  /*
-    Escenario corregido:
-    - Sin vigas gruesas.
-    - Sin frontLintel.
-    - Sin frontTopSlab.
-    - Sin líneas hechas con BoxGeometry.
-    - Solo planos interiores y líneas delgadas.
-    Esto evita que las piezas se crucen frente a la cámara al girar.
-  */
-
   const roomWidth = 86;
   const roomHeight = 14;
   const roomDepth = 94;
@@ -310,6 +306,7 @@ function createReferenceRoom() {
     new THREE.PlaneGeometry(roomWidth, floorDepth),
     floorMaterial
   );
+
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(0, 0, floorCenterZ);
   room.add(floor);
@@ -318,6 +315,7 @@ function createReferenceRoom() {
     new THREE.PlaneGeometry(roomWidth, roomHeight),
     wallMaterial
   );
+
   backWall.position.set(0, roomHeight / 2, backZ);
   room.add(backWall);
 
@@ -325,6 +323,7 @@ function createReferenceRoom() {
     new THREE.PlaneGeometry(floorDepth, roomHeight),
     sideWallMaterial
   );
+
   leftWall.rotation.y = Math.PI / 2;
   leftWall.position.set(-roomWidth / 2, roomHeight / 2, floorCenterZ);
   room.add(leftWall);
@@ -333,6 +332,7 @@ function createReferenceRoom() {
     new THREE.PlaneGeometry(floorDepth, roomHeight),
     sideWallMaterial
   );
+
   rightWall.rotation.y = -Math.PI / 2;
   rightWall.position.set(roomWidth / 2, roomHeight / 2, floorCenterZ);
   room.add(rightWall);
@@ -341,6 +341,7 @@ function createReferenceRoom() {
     new THREE.PlaneGeometry(roomWidth, roomDepth + 28),
     ceilingMaterial
   );
+
   ceiling.rotation.x = Math.PI / 2;
   ceiling.position.set(0, roomHeight, roomCenterZ - 2);
   room.add(ceiling);
@@ -439,6 +440,23 @@ function createReferenceRoom() {
    CÁMARA
 ========================= */
 
+function limitarDistanciaCamara() {
+  const direccion = new THREE.Vector3();
+  direccion.subVectors(camera.position, controls.target);
+
+  const distanciaActual = direccion.length();
+
+  if (distanciaActual > DISTANCIA_MAXIMA_CAMARA) {
+    direccion.setLength(DISTANCIA_MAXIMA_CAMARA);
+    camera.position.copy(controls.target.clone().add(direccion));
+  }
+
+  if (distanciaActual < DISTANCIA_MINIMA_CAMARA) {
+    direccion.setLength(DISTANCIA_MINIMA_CAMARA);
+    camera.position.copy(controls.target.clone().add(direccion));
+  }
+}
+
 function limitarAlturaCamara() {
   if (camera.position.y < ALTURA_MINIMA_CAMARA) {
     camera.position.y = ALTURA_MINIMA_CAMARA;
@@ -454,6 +472,8 @@ function limitarAlturaCamara() {
   if (direccion.y < -0.15) {
     camera.position.y = controls.target.y + 0.15;
   }
+
+  limitarDistanciaCamara();
 }
 
 function posicionarMemorialDentroDeSalaReferencia() {
@@ -469,20 +489,20 @@ function posicionarMemorialDentroDeSalaReferencia() {
   memorialGroup.position.set(0, 1.48, roomCenterZ + 4.8);
   memorialGroup.rotation.set(0, 0, 0);
 
-  camera.position.set(0, 6.7, roomCenterZ + roomDepth / 2 + 36);
+  camera.position.set(0, 5.8, roomCenterZ + roomDepth / 2 + 24);
   controls.target.set(0, 2.9, roomCenterZ + 4.8);
 
   controls.enablePan = false;
   controls.enableDamping = true;
   controls.dampingFactor = 0.075;
 
-  controls.minDistance = 12;
-  controls.maxDistance = 150;
+  controls.minDistance = DISTANCIA_MINIMA_CAMARA;
+  controls.maxDistance = DISTANCIA_MAXIMA_CAMARA;
 
   controls.minAzimuthAngle = -Infinity;
   controls.maxAzimuthAngle = Infinity;
 
-  controls.minPolarAngle = 0.28;
+  controls.minPolarAngle = 0.58;
   controls.maxPolarAngle = Math.PI / 2.18;
 
   limitarAlturaCamara();
@@ -1086,7 +1106,6 @@ function createFallbackLetter(data) {
   });
 
   arrangeWord();
-
   posicionarMemorialDentroDeSalaReferencia();
   construirFramesProgresivos();
 }
@@ -1129,18 +1148,21 @@ function loadLetters() {
    BOTONES
 ========================= */
 
-function fitMemorialView() {
-  controls.target.copy(OBJETIVO_CAMARA_INICIAL);
-  camera.position.copy(POSICION_CAMARA_INICIAL);
-  limitarAlturaCamara();
-  controls.update();
-}
-
 function zoomCamera(factor) {
   const direction = new THREE.Vector3();
   direction.subVectors(camera.position, controls.target);
   direction.multiplyScalar(factor);
+
+  const newDistance = THREE.MathUtils.clamp(
+    direction.length(),
+    DISTANCIA_MINIMA_CAMARA,
+    DISTANCIA_MAXIMA_CAMARA
+  );
+
+  direction.setLength(newDistance);
+
   camera.position.copy(controls.target.clone().add(direction));
+
   limitarAlturaCamara();
   controls.update();
 }

@@ -1,8 +1,10 @@
 // aportar.js
-// Carga la base real desde data/detenidos-desaparecidos.json
-// Guarda cada aporte directamente en localStorage para que aparezca como frame en MEMORIA.
+// Carga la base real desde data/detenidos-desaparecidos.json.
+// Guarda cada aporte en Supabase para que aparezca desde cualquier computador o celular.
+// Ya no usa localStorage.
 
 const DATASET_URL = "data/detenidos-desaparecidos.json";
+const STORAGE_BUCKET = "memoria-files";
 
 let people = [];
 
@@ -10,6 +12,7 @@ const personSearch = document.getElementById("personSearch");
 const personSelect = document.getElementById("personSelect");
 const selectedPersonInfo = document.getElementById("selectedPersonInfo");
 const memoryForm = document.getElementById("memoryForm");
+const submitButton = document.getElementById("submitButton");
 
 function normalizeText(value) {
   return String(value || "")
@@ -132,49 +135,87 @@ async function loadPeopleDatabase() {
   }
 }
 
-function getStoredMemories() {
-  const saved = localStorage.getItem("memories");
-
-  if (!saved) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(saved);
-
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed;
-  } catch (error) {
-    console.warn("No se pudieron leer las memorias guardadas:", error);
-    return [];
-  }
-}
-
 function getSimpleFileType(mime) {
+  if (!mime) return "document";
   if (mime.startsWith("image/")) return "image";
   if (mime.startsWith("video/")) return "video";
   if (mime.startsWith("audio/")) return "audio";
   return "document";
 }
 
-function fileToObject(file) {
-  return new Promise(resolve => {
-    const reader = new FileReader();
+function getSafeFileName(fileName) {
+  return String(fileName || "archivo")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .toLowerCase();
+}
 
-    reader.onload = () => {
-      resolve({
-        name: file.name,
-        type: getSimpleFileType(file.type),
-        mime: file.type,
-        url: reader.result
-      });
-    };
+function createRandomId() {
+  if (window.crypto && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
 
-    reader.readAsDataURL(file);
-  });
+  return String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+}
+
+async function uploadFileToSupabase(file, personId) {
+  const safeFileName = getSafeFileName(file.name);
+  const filePath = `${personId}/${Date.now()}-${createRandomId()}-${safeFileName}`;
+
+  const { error: uploadError } = await window.supabaseClient.storage
+    .from(STORAGE_BUCKET)
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "application/octet-stream"
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = window.supabaseClient.storage
+    .from(STORAGE_BUCKET)
+    .getPublicUrl(filePath);
+
+  return {
+    name: file.name,
+    type: getSimpleFileType(file.type),
+    mime: file.type,
+    path: filePath,
+    url: data.publicUrl
+  };
+}
+
+async function saveMemoryToSupabase(memory) {
+  const { error } = await window.supabaseClient
+    .from("memories")
+    .insert({
+      person_id: memory.personId,
+      name: memory.name,
+      message: memory.message,
+      type: memory.type,
+      relation: memory.relation,
+      files: memory.files,
+      dedicated_to: memory.dedicatedTo
+    });
+
+  if (error) {
+    throw error;
+  }
+}
+
+function setLoadingState(isLoading) {
+  if (!submitButton) {
+    return;
+  }
+
+  submitButton.disabled = isLoading;
+  submitButton.textContent = isLoading
+    ? "Guardando memoria..."
+    : "Construir memoria";
 }
 
 personSearch.addEventListener("input", () => {
@@ -189,6 +230,11 @@ personSelect.addEventListener("change", () => {
 
 memoryForm.addEventListener("submit", async event => {
   event.preventDefault();
+
+  if (!window.supabaseClient) {
+    alert("No se pudo conectar con Supabase. Revisa supabaseClient.js.");
+    return;
+  }
 
   const contributionType = document.getElementById("contributionType");
   const filesInput = document.getElementById("filesInput");
@@ -214,48 +260,51 @@ memoryForm.addEventListener("submit", async event => {
   }
 
   const files = Array.from(filesInput.files);
-  const processedFiles = await Promise.all(files.map(fileToObject));
-
-  const newMemory = {
-    personId: selectedPerson.id,
-    name: selectedPerson.nombre,
-    message: messageInput.value.trim(),
-    type: contributionType.value,
-    relation: relationInput.value,
-    files: processedFiles,
-    createdAt: new Date().toISOString(),
-
-    dedicatedTo: {
-      id: selectedPerson.id,
-      nombre: selectedPerson.nombre,
-      calificacion: selectedPerson.calificacion || "",
-      categoria: selectedPerson.categoria || "",
-      militancia: selectedPerson.militancia || "",
-      fecha_detencion_muerte: selectedPerson.fecha_detencion_muerte || "",
-      region: selectedPerson.region || "",
-      ciudad: selectedPerson.ciudad || "",
-      comuna: selectedPerson.comuna || "",
-      edad: selectedPerson.edad || "",
-      ocupacion: selectedPerson.ocupacion || "",
-      pagina_origen: selectedPerson.pagina_origen || ""
-    }
-  };
-
-  const memories = getStoredMemories();
-
-  memories.unshift(newMemory);
 
   try {
-    localStorage.setItem("memories", JSON.stringify(memories));
+    setLoadingState(true);
 
-    alert("Memoria agregada. Ahora puedes entrar al memorial para verla como frame dentro de la palabra 3D.");
+    const uploadedFiles = await Promise.all(
+      files.map(file => uploadFileToSupabase(file, selectedPerson.id))
+    );
+
+    const newMemory = {
+      personId: selectedPerson.id,
+      name: selectedPerson.nombre,
+      message: messageInput.value.trim(),
+      type: contributionType.value,
+      relation: relationInput.value,
+      files: uploadedFiles,
+      createdAt: new Date().toISOString(),
+
+      dedicatedTo: {
+        id: selectedPerson.id,
+        nombre: selectedPerson.nombre,
+        calificacion: selectedPerson.calificacion || "",
+        categoria: selectedPerson.categoria || "",
+        militancia: selectedPerson.militancia || "",
+        fecha_detencion_muerte: selectedPerson.fecha_detencion_muerte || "",
+        region: selectedPerson.region || "",
+        ciudad: selectedPerson.ciudad || "",
+        comuna: selectedPerson.comuna || "",
+        edad: selectedPerson.edad || "",
+        ocupacion: selectedPerson.ocupacion || "",
+        pagina_origen: selectedPerson.pagina_origen || ""
+      }
+    };
+
+    await saveMemoryToSupabase(newMemory);
+
+    alert("Memoria agregada. Ahora aparecerá en el memorial desde cualquier computador o celular.");
 
     event.target.reset();
     selectedPersonInfo.innerHTML = "";
     renderPersonOptions(people);
   } catch (error) {
-    console.error(error);
-    alert("El archivo es muy pesado para guardarlo en este prototipo local. Prueba con una imagen más liviana.");
+    console.error("Error al guardar memoria:", error);
+    alert("No se pudo guardar la memoria en Supabase. Abre la consola con F12 para ver el error exacto.");
+  } finally {
+    setLoadingState(false);
   }
 });
 

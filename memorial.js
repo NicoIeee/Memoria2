@@ -32,27 +32,18 @@ const BACKGROUND_FILE = "models/memoriafondo.glb";
 const MOSTRAR_FONDO_GLB = true;
 
 /*
-Corrección:
-
-Las líneas del techo ya no miran hacia el frente.
-Ahora el escenario queda orientado hacia arriba y hacia atrás.
+No se rota el fondo completo para evitar que desaparezca.
+La cámara se coloca dentro del escenario para que se vea el interior.
 */
-const ROTACION_FONDO = new THREE.Euler(-Math.PI / 2, 0, 0);
+const ROTACION_FONDO = new THREE.Euler(0, 0, 0);
 
-/*
-Corrección:
-
-El fondo queda más grande para envolver la palabra.
-Las letras quedan dentro del escenario.
-La cámara queda dentro del escenario para evitar ver el exterior.
-*/
 const ESCALA_FONDO_OBJETIVO = 38;
 const POSICION_FONDO = new THREE.Vector3(0, -0.15, -7.8);
 
-const POSICION_LETRAS = new THREE.Vector3(0, 0.55, -7.8);
+const POSICION_LETRAS_INICIAL = new THREE.Vector3(0, 0.55, -7.8);
 
 const POSICION_CAMARA_INICIAL = new THREE.Vector3(0, 2.75, 4.8);
-const OBJETIVO_CAMARA = new THREE.Vector3(0, 2.55, -7.8);
+const OBJETIVO_CAMARA_INICIAL = new THREE.Vector3(0, 2.55, -7.8);
 
 /* =========================================================
 DISTRIBUCIÓN DE FRAMES EN LAS LETRAS
@@ -214,7 +205,7 @@ ESCENA
 const container = document.getElementById("threeContainer");
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x101010, 22, 52);
+scene.fog = new THREE.Fog(0x101010, 22, 58);
 
 const camera = new THREE.PerspectiveCamera(
 35,
@@ -244,21 +235,24 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 
-controls.target.copy(OBJETIVO_CAMARA);
+controls.target.copy(OBJETIVO_CAMARA_INICIAL);
 
 controls.enablePan = false;
 
+/*
+Giro limitado para que el espectador se mantenga dentro del escenario.
+*/
 controls.minDistance = 9;
-controls.maxDistance = 14;
+controls.maxDistance = 16;
 
-controls.minPolarAngle = Math.PI / 2.18;
-controls.maxPolarAngle = Math.PI / 1.86;
+controls.minPolarAngle = Math.PI / 2.2;
+controls.maxPolarAngle = Math.PI / 1.82;
 
-controls.minAzimuthAngle = -0.45;
-controls.maxAzimuthAngle = 0.45;
+controls.minAzimuthAngle = -0.48;
+controls.maxAzimuthAngle = 0.48;
 
 const memorialGroup = new THREE.Group();
-memorialGroup.position.copy(POSICION_LETRAS);
+memorialGroup.position.copy(POSICION_LETRAS_INICIAL);
 scene.add(memorialGroup);
 
 /* =========================================================
@@ -557,6 +551,8 @@ FONDO GLB CON TEXTURAS
 function cloneBackgroundMaterial(material) {
 const cloned = material.clone();
 
+cloned.side = THREE.DoubleSide;
+
 if (cloned.map) {
 cloned.map.colorSpace = THREE.SRGBColorSpace;
 cloned.map.needsUpdate = true;
@@ -570,7 +566,7 @@ cloned.emissiveMap.needsUpdate = true;
 if (cloned.map && "emissive" in cloned) {
 cloned.emissive = new THREE.Color(0xffffff);
 cloned.emissiveMap = cloned.map;
-cloned.emissiveIntensity = 0.22;
+cloned.emissiveIntensity = 0.18;
 }
 
 if ("roughness" in cloned) {
@@ -636,6 +632,44 @@ wrapper.position.add(POSICION_FONDO);
 return wrapper;
 }
 
+function ajustarVistaInteriorConFondo() {
+if (!backgroundModel) {
+return;
+}
+
+const box = new THREE.Box3().setFromObject(backgroundModel);
+const size = new THREE.Vector3();
+const center = new THREE.Vector3();
+
+box.getSize(size);
+box.getCenter(center);
+
+const baseY = box.min.y;
+
+memorialGroup.position.set(
+center.x,
+baseY + 0.55,
+center.z - size.z * 0.16
+);
+
+camera.position.set(
+center.x,
+baseY + 2.75,
+center.z + size.z * 0.38
+);
+
+controls.target.set(
+center.x,
+baseY + 2.55,
+center.z - size.z * 0.16
+);
+
+controls.minDistance = Math.max(8, size.z * 0.20);
+controls.maxDistance = Math.max(12, size.z * 0.42);
+
+controls.update();
+}
+
 function loadBackgroundModel() {
 if (!MOSTRAR_FONDO_GLB) {
 return;
@@ -649,6 +683,8 @@ scene.add(backgroundModel);
 
   floor.visible = false;
   wall.visible = false;
+
+  ajustarVistaInteriorConFondo();
 },
 undefined,
 error => {
@@ -1046,7 +1082,12 @@ CÁMARA
 ========================================================= */
 
 function fitMemorialView() {
-controls.target.copy(OBJETIVO_CAMARA);
+if (backgroundModel) {
+ajustarVistaInteriorConFondo();
+return;
+}
+
+controls.target.copy(OBJETIVO_CAMARA_INICIAL);
 camera.position.copy(POSICION_CAMARA_INICIAL);
 controls.update();
 }

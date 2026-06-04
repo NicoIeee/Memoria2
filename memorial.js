@@ -16,33 +16,33 @@ const MOSTRAR_GUIA_LETRAS = false;
 const INCLUIR_CARA_TRASERA = false;
 const INCLUIR_DIAGONALES = true;
 
-const ALTURA_OBJETIVO_LETRA = 5.4;
-const ANCHO_FRAME = 0.38;
-const ALTO_FRAME = 0.5;
+const ALTURA_OBJETIVO_LETRA = 4.4;
+const ANCHO_FRAME = 0.32;
+const ALTO_FRAME = 0.44;
 const PROFUNDIDAD_FRAME = 0.04;
-const DISTANCIA_MINIMA_ENTRE_FRAMES = 0.4;
+const DISTANCIA_MINIMA_ENTRE_FRAMES = 0.34;
 const OFFSET_FRAME = 0.028;
-const MAX_FRAMES_POR_LETRA = 72;
+const MAX_FRAMES_POR_LETRA = 68;
 
 const BACKGROUND_FILE = "models/memoriafondo.glb";
 const MOSTRAR_FONDO_GLB = true;
 
 /*
-Version estable:
+Fondo:
 
-No usa backticks en ninguna parte del codigo.
-Carga las letras M E M O R I A.
-Carga el fondo memoriafondo.glb si existe.
-Si el fondo falla, deja un suelo y muro base para que las letras no desaparezcan.
+Se mantiene sin rotacion para que no desaparezca.
+Se recorta la parte frontal para ver mejor el interior.
+Las letras se posicionan dentro del fondo una vez cargado.
 */
-
 const ROTACION_FONDO = new THREE.Euler(0, 0, 0);
 const ESCALA_FONDO_OBJETIVO = 34;
 const POSICION_FONDO = new THREE.Vector3(0, -0.05, -8);
 
-const POSICION_LETRAS = new THREE.Vector3(0, 0.65, -6.2);
-const POSICION_CAMARA_INICIAL = new THREE.Vector3(0, 4.4, 23);
-const OBJETIVO_CAMARA_INICIAL = new THREE.Vector3(0, 2.8, -5.8);
+const POSICION_LETRAS_INICIAL = new THREE.Vector3(0, 0.9, -7.4);
+const POSICION_CAMARA_INICIAL = new THREE.Vector3(0, 3.2, 19);
+const OBJETIVO_CAMARA_INICIAL = new THREE.Vector3(0, 2.6, -7.4);
+
+let planoCorteFrontal = null;
 
 const CUPOS_POR_CARA = {
 front: 34,
@@ -53,13 +53,17 @@ diagonal: 6,
 back: 0
 };
 
+/* =========================================================
+ARCHIVOS GLB DE LETRAS
+========================================================= */
+
 const letterFiles = [
 {
 order: 0,
 key: "M1",
 label: "M",
 file: "models/M1 memoria.glb",
-x: -10.8,
+x: -6.6,
 rotation: { x: -Math.PI / 2, y: 0, z: 0 }
 },
 {
@@ -67,7 +71,7 @@ order: 1,
 key: "E",
 label: "E",
 file: "models/E memoria.glb",
-x: -7.2,
+x: -4.4,
 rotation: { x: -Math.PI / 2, y: 0, z: 0 }
 },
 {
@@ -75,7 +79,7 @@ order: 2,
 key: "M2",
 label: "M",
 file: "models/M2 memoria.glb",
-x: -3.6,
+x: -2.2,
 rotation: { x: -Math.PI / 2, y: 0, z: 0 }
 },
 {
@@ -91,7 +95,7 @@ order: 4,
 key: "R",
 label: "R",
 file: "models/R memoria.glb",
-x: 3.6,
+x: 2.2,
 rotation: { x: -Math.PI / 2, y: 0, z: 0 }
 },
 {
@@ -99,7 +103,7 @@ order: 5,
 key: "I",
 label: "I",
 file: "models/I memoria.glb",
-x: 7.2,
+x: 4.4,
 rotation: { x: -Math.PI / 2, y: 0, z: 0 }
 },
 {
@@ -107,7 +111,7 @@ order: 6,
 key: "A",
 label: "A",
 file: "models/A memoria.glb",
-x: 10.8,
+x: 6.6,
 rotation: { x: -Math.PI / 2, y: 0, z: 0 }
 }
 ];
@@ -196,7 +200,7 @@ ESCENA THREE
 const container = document.getElementById("threeContainer");
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x101010, 35, 85);
+scene.fog = new THREE.Fog(0x101010, 32, 80);
 
 const camera = new THREE.PerspectiveCamera(
 35,
@@ -217,6 +221,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled = true;
 renderer.setClearColor(0x080706, 1);
 
 container.appendChild(renderer.domElement);
@@ -227,37 +232,37 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.target.copy(OBJETIVO_CAMARA_INICIAL);
 controls.enablePan = false;
-controls.minDistance = 8;
-controls.maxDistance = 32;
-controls.minPolarAngle = Math.PI / 3.3;
-controls.maxPolarAngle = Math.PI / 1.85;
-controls.minAzimuthAngle = -0.85;
-controls.maxAzimuthAngle = 0.85;
+controls.minDistance = 6;
+controls.maxDistance = 26;
+controls.minPolarAngle = Math.PI / 3.1;
+controls.maxPolarAngle = Math.PI / 1.9;
+controls.minAzimuthAngle = -0.75;
+controls.maxAzimuthAngle = 0.75;
 
 const memorialGroup = new THREE.Group();
-memorialGroup.position.copy(POSICION_LETRAS);
+memorialGroup.position.copy(POSICION_LETRAS_INICIAL);
 scene.add(memorialGroup);
 
 /* =========================================================
 ILUMINACION Y ESCENARIO BASE
 ========================================================= */
 
-scene.add(new THREE.AmbientLight(0xffffff, 1.05));
+scene.add(new THREE.AmbientLight(0xffffff, 1.15));
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
 keyLight.position.set(-6, 10, 12);
 keyLight.castShadow = true;
 scene.add(keyLight);
 
-const softFrontLight = new THREE.PointLight(0xffffff, 1.8, 35);
+const softFrontLight = new THREE.PointLight(0xffffff, 2.2, 38);
 softFrontLight.position.set(0, 5, 12);
 scene.add(softFrontLight);
 
-const coolTunnelLight = new THREE.PointLight(0xb6c7d6, 1.35, 32);
+const coolTunnelLight = new THREE.PointLight(0xb6c7d6, 1.5, 34);
 coolTunnelLight.position.set(0, 5.2, -8);
 scene.add(coolTunnelLight);
 
-const warmSideLight = new THREE.PointLight(0xffd0a0, 0.9, 26);
+const warmSideLight = new THREE.PointLight(0xffd0a0, 1.05, 28);
 warmSideLight.position.set(-8, 3.5, 4);
 scene.add(warmSideLight);
 
@@ -466,6 +471,8 @@ OBJETOS Y CENTRADO
 ========================================================= */
 
 function getObjectBox(object) {
+object.updateWorldMatrix(true, true);
+
 const box = new THREE.Box3().setFromObject(object);
 const size = new THREE.Vector3();
 const center = new THREE.Vector3();
@@ -544,6 +551,11 @@ const cloned = material.clone();
 
 cloned.side = THREE.DoubleSide;
 
+if (planoCorteFrontal) {
+cloned.clippingPlanes = [planoCorteFrontal];
+cloned.clipShadows = true;
+}
+
 if (cloned.map) {
 cloned.map.colorSpace = THREE.SRGBColorSpace;
 cloned.map.needsUpdate = true;
@@ -557,7 +569,7 @@ cloned.emissiveMap.needsUpdate = true;
 if (cloned.map && "emissive" in cloned) {
 cloned.emissive = new THREE.Color(0xffffff);
 cloned.emissiveMap = cloned.map;
-cloned.emissiveIntensity = 0.22;
+cloned.emissiveIntensity = 0.24;
 }
 
 if ("roughness" in cloned) {
@@ -571,6 +583,27 @@ cloned.metalness = cloned.metalness || 0.02;
 cloned.needsUpdate = true;
 
 return cloned;
+}
+
+function applyClippingToBackground(model) {
+model.traverse(child => {
+if (!child.isMesh || !child.material || !planoCorteFrontal) {
+return;
+}
+
+if (Array.isArray(child.material)) {
+  child.material.forEach(material => {
+    material.clippingPlanes = [planoCorteFrontal];
+    material.clipShadows = true;
+    material.needsUpdate = true;
+  });
+} else {
+  child.material.clippingPlanes = [planoCorteFrontal];
+  child.material.clipShadows = true;
+  child.material.needsUpdate = true;
+}
+
+});
 }
 
 function styleBackgroundModel(model) {
@@ -595,8 +628,6 @@ if (Array.isArray(child.material)) {
 }
 
 function prepareBackgroundModel(model) {
-styleBackgroundModel(model);
-
 const wrapper = new THREE.Group();
 wrapper.name = "memoriafondo";
 
@@ -623,7 +654,63 @@ wrapper.position.y -= finalBox.min.y;
 
 wrapper.position.add(POSICION_FONDO);
 
+wrapper.updateWorldMatrix(true, true);
+
+const worldBox = new THREE.Box3().setFromObject(wrapper);
+const worldSize = new THREE.Vector3();
+worldBox.getSize(worldSize);
+
+const corteZ = worldBox.max.z - worldSize.z * 0.13;
+planoCorteFrontal = new THREE.Plane(new THREE.Vector3(0, 0, -1), corteZ);
+
+styleBackgroundModel(wrapper);
+applyClippingToBackground(wrapper);
+
 return wrapper;
+}
+
+function posicionarMemorialDentroDelFondo() {
+if (!backgroundModel) {
+memorialGroup.position.copy(POSICION_LETRAS_INICIAL);
+return;
+}
+
+const info = getObjectBox(backgroundModel);
+const box = info.box;
+const size = info.size;
+const center = info.center;
+
+const alturaLetras = Math.max(0.7, size.y * 0.13);
+const profundidadLetras = center.z - size.z * 0.24;
+
+memorialGroup.position.set(
+center.x,
+box.min.y + alturaLetras,
+profundidadLetras
+);
+
+camera.position.set(
+center.x,
+box.min.y + size.y * 0.34,
+box.max.z - size.z * 0.04
+);
+
+controls.target.set(
+center.x,
+box.min.y + size.y * 0.33,
+profundidadLetras
+);
+
+controls.minDistance = Math.max(4, size.z * 0.08);
+controls.maxDistance = Math.max(8, size.z * 0.26);
+
+controls.minPolarAngle = Math.PI / 2.55;
+controls.maxPolarAngle = Math.PI / 1.82;
+
+controls.minAzimuthAngle = -0.55;
+controls.maxAzimuthAngle = 0.55;
+
+controls.update();
 }
 
 function loadBackgroundModel() {
@@ -640,7 +727,7 @@ scene.add(backgroundModel);
   fallbackFloor.visible = false;
   fallbackWall.visible = false;
 
-  fitMemorialView();
+  posicionarMemorialDentroDelFondo();
 },
 undefined,
 error => {
@@ -964,7 +1051,11 @@ arrangeWord();
 
 structure.visible = MOSTRAR_GUIA_LETRAS;
 
+if (backgroundModel) {
+posicionarMemorialDentroDelFondo();
+} else {
 fitMemorialView();
+}
 }
 
 function createFallbackLetter(data) {
@@ -996,7 +1087,11 @@ group: letterGroup
 
 arrangeWord();
 
+if (backgroundModel) {
+posicionarMemorialDentroDelFondo();
+} else {
 fitMemorialView();
+}
 }
 
 function arrangeWord() {
@@ -1048,7 +1143,11 @@ controls.update();
 }
 
 document.getElementById("fullWordButton").addEventListener("click", () => {
+if (backgroundModel) {
+posicionarMemorialDentroDelFondo();
+} else {
 fitMemorialView();
+}
 });
 
 document.getElementById("zoomIn").addEventListener("click", () => {
@@ -1060,7 +1159,11 @@ camera.position.multiplyScalar(1.06);
 });
 
 document.getElementById("resetView").addEventListener("click", () => {
+if (backgroundModel) {
+posicionarMemorialDentroDelFondo();
+} else {
 fitMemorialView();
+}
 });
 
 /* =========================================================
@@ -1173,4 +1276,4 @@ window.addEventListener("resize", () => {
 camera.aspect = container.clientWidth / container.clientHeight;
 camera.updateProjectionMatrix();
 renderer.setSize(container.clientWidth, container.clientHeight);
-});
+})

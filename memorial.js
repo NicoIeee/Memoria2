@@ -1,11 +1,11 @@
 // memorial.js
 // REEMPLAZA COMPLETO TU ARCHIVO memorial.js POR ESTE
-// AJUSTE: SOLO SE CORRIGE EL FONDO / ESCENARIO
-// - La palabra se mantiene igual
-// - El fondo se hace mas grande
-// - El fondo se gira hacia atras
-// - La vista queda centrada desde dentro del escenario
-// - Se ajustan camara y controles para parecerse mas al render de referencia
+// AJUSTE: LAS LETRAS SE MANTIENEN
+// SOLO SE CAMBIA EL FONDO PARA QUE SE PAREZCA MAS A LA IMAGEN PNG:
+// - vuelve el suelo
+// - se separan las paredes
+// - se crea una sala/tunel mas amplia
+// - la camara queda centrada hacia el interior
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -30,22 +30,18 @@ const DISTANCIA_MINIMA_ENTRE_FRAMES = 0.34;
 const OFFSET_FRAME = 0.028;
 const MAX_FRAMES_POR_LETRA = 68;
 
-const BACKGROUND_FILE = "models/memoriafondo.glb";
-const MOSTRAR_FONDO_GLB = true;
-
 /*
-  SOLO FONDO:
-  - girado hacia atras
-  - mas grande
-  - la camara queda dentro y centrada
+  LAS LETRAS QUEDAN IGUAL.
+  EL FONDO SE REEMPLAZA POR UNA SALA/TUNEL
+  QUE SE PARECE MAS AL PNG DE REFERENCIA.
 */
-const ROTACION_FONDO = new THREE.Euler(0, Math.PI, 0);
-const ESCALA_FONDO_OBJETIVO = 78;
-const POSICION_FONDO = new THREE.Vector3(0, -0.12, -8);
+const USAR_ESCENARIO_REFERENCIA = true;
+const BACKGROUND_FILE = "models/memoriafondo.glb";
+const MOSTRAR_FONDO_GLB = false;
 
-const POSICION_LETRAS_INICIAL = new THREE.Vector3(0, 1.45, -8);
-const POSICION_CAMARA_INICIAL = new THREE.Vector3(0, 5.6, 24);
-const OBJETIVO_CAMARA_INICIAL = new THREE.Vector3(0, 2.9, -8);
+const POSICION_LETRAS_INICIAL = new THREE.Vector3(0, 1.45, -3.4);
+const POSICION_CAMARA_INICIAL = new THREE.Vector3(0, 4.8, 12.5);
+const OBJETIVO_CAMARA_INICIAL = new THREE.Vector3(0, 2.7, -3.4);
 
 const CUPOS_POR_CARA = {
   front: 34,
@@ -202,7 +198,7 @@ const memories = getMemories();
 const container = document.getElementById("threeContainer");
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x0b0a09, 50, 160);
+scene.fog = new THREE.Fog(0x111111, 24, 75);
 
 const camera = new THREE.PerspectiveCamera(
   35,
@@ -224,7 +220,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.localClippingEnabled = false;
-renderer.setClearColor(0x080706, 1);
+renderer.setClearColor(0x0a0a0a, 1);
 
 container.appendChild(renderer.domElement);
 
@@ -233,18 +229,14 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.target.copy(OBJETIVO_CAMARA_INICIAL);
 controls.enablePan = false;
-
-controls.minDistance = 8;
-controls.maxDistance = 55;
-
+controls.minDistance = 7;
+controls.maxDistance = 30;
 controls.minPolarAngle = Math.PI / 2.45;
-controls.maxPolarAngle = Math.PI / 1.9;
-
-controls.minAzimuthAngle = -0.35;
-controls.maxAzimuthAngle = 0.35;
-
+controls.maxPolarAngle = Math.PI / 1.95;
+controls.minAzimuthAngle = -0.32;
+controls.maxAzimuthAngle = 0.32;
 controls.rotateSpeed = 0.65;
-controls.zoomSpeed = 0.8;
+controls.zoomSpeed = 0.85;
 
 const memorialGroup = new THREE.Group();
 memorialGroup.position.copy(POSICION_LETRAS_INICIAL);
@@ -255,54 +247,199 @@ scene.add(memorialGroup);
    ILUMINACION
    ========================================================= */
 
-scene.add(new THREE.AmbientLight(0xffffff, 1.18));
+scene.add(new THREE.AmbientLight(0xffffff, 1.05));
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
-keyLight.position.set(-8, 12, 16);
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+keyLight.position.set(-8, 12, 10);
 keyLight.castShadow = true;
+keyLight.shadow.mapSize.width = 2048;
+keyLight.shadow.mapSize.height = 2048;
 scene.add(keyLight);
 
-const frontLight = new THREE.PointLight(0xffffff, 2.4, 58);
-frontLight.position.set(0, 6.5, 18);
+const frontLight = new THREE.PointLight(0xffffff, 1.8, 45);
+frontLight.position.set(0, 6.2, 10);
 scene.add(frontLight);
 
-const interiorLight = new THREE.PointLight(0xc8d1db, 1.85, 82);
-interiorLight.position.set(0, 6, -12);
-scene.add(interiorLight);
+const centerFillLight = new THREE.PointLight(0xd9e0e7, 1.45, 42);
+centerFillLight.position.set(0, 4.8, -4);
+scene.add(centerFillLight);
 
-const warmSideLight = new THREE.PointLight(0xffd0a0, 1.05, 34);
-warmSideLight.position.set(-8, 4, 8);
-scene.add(warmSideLight);
+const floorBounceLight = new THREE.PointLight(0xcfd6dd, 0.8, 35);
+floorBounceLight.position.set(0, 1.2, 0);
+scene.add(floorBounceLight);
 
 /* =========================================================
-   ESCENARIO BASE SI FALLA EL GLB
+   ESCENARIO REFERENCIA
    ========================================================= */
 
-const fallbackFloor = new THREE.Mesh(
-  new THREE.PlaneGeometry(90, 42),
-  new THREE.MeshStandardMaterial({
-    color: 0x2a221b,
-    roughness: 0.72,
-    metalness: 0.03
-  })
-);
+let backgroundModel = null;
+let referenceRoom = null;
 
-fallbackFloor.rotation.x = -Math.PI / 2;
-fallbackFloor.position.y = -0.05;
-fallbackFloor.receiveShadow = true;
-scene.add(fallbackFloor);
+function createStoneMaterial(color, roughness = 0.88, metalness = 0.04) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness,
+    metalness
+  });
+}
 
-const fallbackWall = new THREE.Mesh(
-  new THREE.PlaneGeometry(90, 28),
-  new THREE.MeshStandardMaterial({
-    color: 0x4c3927,
-    roughness: 0.9
-  })
-);
+function createReferenceRoom() {
+  const room = new THREE.Group();
+  room.name = "reference-room";
 
-fallbackWall.position.set(0, 8.7, -18);
-fallbackWall.receiveShadow = true;
-scene.add(fallbackWall);
+  const roomWidth = 28;
+  const roomHeight = 11;
+  const roomDepth = 24;
+
+  const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(roomWidth, 0.45, roomDepth),
+    new THREE.MeshStandardMaterial({
+      color: 0xa9adb1,
+      roughness: 0.22,
+      metalness: 0.06
+    })
+  );
+  floor.position.set(0, -0.22, -3.8);
+  floor.receiveShadow = true;
+  room.add(floor);
+
+  const backWall = new THREE.Mesh(
+    new THREE.BoxGeometry(roomWidth, roomHeight, 0.8),
+    createStoneMaterial(0x64676b, 0.9, 0.02)
+  );
+  backWall.position.set(0, roomHeight / 2, -roomDepth / 2 - 3.8);
+  backWall.receiveShadow = true;
+  room.add(backWall);
+
+  const leftWall = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, roomHeight, roomDepth),
+    createStoneMaterial(0x6c7074, 0.9, 0.02)
+  );
+  leftWall.position.set(-roomWidth / 2, roomHeight / 2, -3.8);
+  leftWall.receiveShadow = true;
+  room.add(leftWall);
+
+  const rightWall = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, roomHeight, roomDepth),
+    createStoneMaterial(0x6c7074, 0.9, 0.02)
+  );
+  rightWall.position.set(roomWidth / 2, roomHeight / 2, -3.8);
+  rightWall.receiveShadow = true;
+  room.add(rightWall);
+
+  const ceiling = new THREE.Mesh(
+    new THREE.BoxGeometry(roomWidth, 0.75, roomDepth),
+    createStoneMaterial(0x72767a, 0.92, 0.02)
+  );
+  ceiling.position.set(0, roomHeight + 0.35, -3.8);
+  room.add(ceiling);
+
+  const frontLintel = new THREE.Mesh(
+    new THREE.BoxGeometry(roomWidth + 1.2, 1.7, 1.25),
+    createStoneMaterial(0x7c8084, 0.94, 0.02)
+  );
+  frontLintel.position.set(0, roomHeight + 0.2, 8.25);
+  room.add(frontLintel);
+
+  const frontTopSlab = new THREE.Mesh(
+    new THREE.BoxGeometry(roomWidth + 2.2, 1.15, 4.4),
+    createStoneMaterial(0x7a7f83, 0.94, 0.02)
+  );
+  frontTopSlab.position.set(0, roomHeight + 1.25, 6.2);
+  room.add(frontTopSlab);
+
+  const ribPositions = [-11.2, -10.1, 10.1, 11.2];
+  ribPositions.forEach(x => {
+    const rib = new THREE.Mesh(
+      new THREE.BoxGeometry(0.24, roomHeight - 0.8, 0.28),
+      createStoneMaterial(0x595d61, 0.95, 0.02)
+    );
+    rib.position.set(x, roomHeight / 2 + 0.2, -11.2);
+    room.add(rib);
+  });
+
+  const floorGlow = new THREE.Mesh(
+    new THREE.PlaneGeometry(roomWidth - 1.8, roomDepth - 1.8),
+    new THREE.MeshStandardMaterial({
+      color: 0xc7cbcf,
+      roughness: 0.18,
+      metalness: 0.03,
+      transparent: true,
+      opacity: 0.32
+    })
+  );
+  floorGlow.rotation.x = -Math.PI / 2;
+  floorGlow.position.set(0, 0.02, -3.8);
+  room.add(floorGlow);
+
+  const topOpeningLight = new THREE.PointLight(0xe6edf3, 1.6, 40);
+  topOpeningLight.position.set(0, 8.6, -0.6);
+  room.add(topOpeningLight);
+
+  const backLight = new THREE.PointLight(0xd4dbe2, 0.85, 28);
+  backLight.position.set(0, 5.7, -13.8);
+  room.add(backLight);
+
+  room.position.set(0, 0, 0);
+
+  return {
+    room,
+    roomWidth,
+    roomHeight,
+    roomDepth
+  };
+}
+
+function posicionarMemorialDentroDeSalaReferencia() {
+  if (!referenceRoom) {
+    memorialGroup.position.copy(POSICION_LETRAS_INICIAL);
+    memorialGroup.rotation.set(0, 0, 0);
+    return;
+  }
+
+  memorialGroup.position.set(0, 1.46, -4.4);
+  memorialGroup.rotation.set(0, 0, 0);
+
+  camera.position.set(0, 4.7, 11.6);
+  controls.target.set(0, 2.55, -4.5);
+
+  controls.minDistance = 7;
+  controls.maxDistance = 24;
+  controls.minPolarAngle = Math.PI / 2.42;
+  controls.maxPolarAngle = Math.PI / 1.96;
+  controls.minAzimuthAngle = -0.28;
+  controls.maxAzimuthAngle = 0.28;
+
+  controls.update();
+}
+
+function loadBackgroundModel() {
+  if (USAR_ESCENARIO_REFERENCIA) {
+    const created = createReferenceRoom();
+    referenceRoom = created.room;
+    scene.add(referenceRoom);
+    posicionarMemorialDentroDeSalaReferencia();
+    return;
+  }
+
+  if (!MOSTRAR_FONDO_GLB) {
+    return;
+  }
+
+  const loader = new GLTFLoader();
+
+  loader.load(
+    encodeURI(BACKGROUND_FILE),
+    gltf => {
+      backgroundModel = gltf.scene;
+      scene.add(backgroundModel);
+    },
+    undefined,
+    error => {
+      console.warn("No se pudo cargar el fondo 3D:", BACKGROUND_FILE, error);
+    }
+  );
+}
 
 /* =========================================================
    LOADERS
@@ -313,7 +450,6 @@ const textureLoader = new THREE.TextureLoader();
 textureLoader.crossOrigin = "anonymous";
 
 const loadedLetters = [];
-let backgroundModel = null;
 
 /* =========================================================
    UTILIDADES
@@ -475,10 +611,8 @@ function createFrame(memory) {
 
   backing.castShadow = true;
   backing.receiveShadow = true;
-
   frontPhoto.castShadow = true;
   frontPhoto.receiveShadow = true;
-
   backPhoto.castShadow = true;
   backPhoto.receiveShadow = true;
 
@@ -549,155 +683,6 @@ function prepareGLBLetter(model, rotationConfig) {
   wrapper.position.y -= finalBox.min.y;
 
   return wrapper;
-}
-
-/* =========================================================
-   FONDO GLB
-   ========================================================= */
-
-function cloneBackgroundMaterial(material) {
-  const cloned = material.clone();
-  cloned.side = THREE.DoubleSide;
-
-  if (cloned.map) {
-    cloned.map.colorSpace = THREE.SRGBColorSpace;
-    cloned.map.needsUpdate = true;
-  }
-
-  if (cloned.emissiveMap) {
-    cloned.emissiveMap.colorSpace = THREE.SRGBColorSpace;
-    cloned.emissiveMap.needsUpdate = true;
-  }
-
-  if (cloned.map && "emissive" in cloned) {
-    cloned.emissive = new THREE.Color(0xffffff);
-    cloned.emissiveMap = cloned.map;
-    cloned.emissiveIntensity = 0.24;
-  }
-
-  if ("roughness" in cloned) {
-    cloned.roughness = Math.max(cloned.roughness || 0.7, 0.7);
-  }
-
-  if ("metalness" in cloned) {
-    cloned.metalness = cloned.metalness || 0.02;
-  }
-
-  cloned.needsUpdate = true;
-
-  return cloned;
-}
-
-function styleBackgroundModel(model) {
-  model.traverse(child => {
-    if (!child.isMesh) {
-      return;
-    }
-
-    child.castShadow = false;
-    child.receiveShadow = true;
-    child.frustumCulled = false;
-
-    if (Array.isArray(child.material)) {
-      child.material = child.material.map(material =>
-        cloneBackgroundMaterial(material)
-      );
-    } else if (child.material) {
-      child.material = cloneBackgroundMaterial(child.material);
-    }
-  });
-}
-
-function prepareBackgroundModel(model) {
-  const wrapper = new THREE.Group();
-  wrapper.name = "memoriafondo";
-
-  model.rotation.copy(ROTACION_FONDO);
-  wrapper.add(model);
-
-  centerObject(wrapper);
-
-  const current = getObjectBox(wrapper);
-  const maxSize = Math.max(
-    current.size.x,
-    current.size.y,
-    current.size.z,
-    0.01
-  );
-
-  const scale = ESCALA_FONDO_OBJETIVO / maxSize;
-  wrapper.scale.setScalar(scale);
-
-  const finalBox = new THREE.Box3().setFromObject(wrapper);
-  wrapper.position.y -= finalBox.min.y;
-  wrapper.position.add(POSICION_FONDO);
-
-  styleBackgroundModel(wrapper);
-
-  return wrapper;
-}
-
-function posicionarMemorialDentroDelFondo() {
-  if (!backgroundModel) {
-    memorialGroup.position.copy(POSICION_LETRAS_INICIAL);
-    memorialGroup.rotation.set(0, 0, 0);
-    return;
-  }
-
-  const info = getObjectBox(backgroundModel);
-  const box = info.box;
-  const size = info.size;
-  const center = info.center;
-
-  const letrasX = center.x;
-  const letrasY = box.min.y + size.y * 0.235;
-  const letrasZ = center.z - size.z * 0.02;
-
-  memorialGroup.position.set(letrasX, letrasY, letrasZ);
-  memorialGroup.rotation.set(0, 0, 0);
-
-  camera.position.set(
-    center.x,
-    box.min.y + size.y * 0.30,
-    box.max.z - size.z * 0.20
-  );
-
-  controls.target.set(
-    center.x,
-    letrasY + size.y * 0.025,
-    center.z - size.z * 0.03
-  );
-
-  controls.minDistance = Math.max(8, size.z * 0.12);
-  controls.maxDistance = Math.max(22, size.z * 0.42);
-
-  controls.update();
-}
-
-function loadBackgroundModel() {
-  if (!MOSTRAR_FONDO_GLB) {
-    return;
-  }
-
-  loader.load(
-    encodeURI(BACKGROUND_FILE),
-    gltf => {
-      backgroundModel = prepareBackgroundModel(gltf.scene);
-      scene.add(backgroundModel);
-
-      fallbackFloor.visible = false;
-      fallbackWall.visible = false;
-
-      posicionarMemorialDentroDelFondo();
-    },
-    undefined,
-    error => {
-      console.warn("No se pudo cargar el fondo 3D:", BACKGROUND_FILE, error);
-      fallbackFloor.visible = true;
-      fallbackWall.visible = true;
-      fitMemorialView();
-    }
-  );
 }
 
 /* =========================================================
@@ -1006,8 +991,8 @@ function createLetter(data, glbScene) {
 
   structure.visible = MOSTRAR_GUIA_LETRAS;
 
-  if (backgroundModel) {
-    posicionarMemorialDentroDelFondo();
+  if (USAR_ESCENARIO_REFERENCIA) {
+    posicionarMemorialDentroDeSalaReferencia();
   } else {
     fitMemorialView();
   }
@@ -1042,8 +1027,8 @@ function createFallbackLetter(data) {
 
   arrangeWord();
 
-  if (backgroundModel) {
-    posicionarMemorialDentroDelFondo();
+  if (USAR_ESCENARIO_REFERENCIA) {
+    posicionarMemorialDentroDeSalaReferencia();
   } else {
     fitMemorialView();
   }
@@ -1097,8 +1082,8 @@ function fitMemorialView() {
 }
 
 document.getElementById("fullWordButton").addEventListener("click", () => {
-  if (backgroundModel) {
-    posicionarMemorialDentroDelFondo();
+  if (USAR_ESCENARIO_REFERENCIA) {
+    posicionarMemorialDentroDeSalaReferencia();
   } else {
     fitMemorialView();
   }
@@ -1113,8 +1098,8 @@ document.getElementById("zoomOut").addEventListener("click", () => {
 });
 
 document.getElementById("resetView").addEventListener("click", () => {
-  if (backgroundModel) {
-    posicionarMemorialDentroDelFondo();
+  if (USAR_ESCENARIO_REFERENCIA) {
+    posicionarMemorialDentroDeSalaReferencia();
   } else {
     fitMemorialView();
   }
